@@ -6,8 +6,6 @@ A Vaadin-based chat application for Spring AI, enabling interactive AI-powered c
 
 This project demonstrates how to build AI-powered chat interfaces in a Spring Boot application by combining Spring AI with Vaadin's rich UI components. It features real-time streaming of AI responses, document-based context enhancement through RAG, and optional OAuth2/Keycloak authentication for secure MCP tool usage.
 
-> **Note:** A React-based frontend (using Vaadin [Hilla](https://vaadin.com/docs/latest/hilla/faq)) is available on the `hilla` branch. When switching between branches, delete the `src/main/frontend/generated` directory to avoid startup issues.
-
 ## Features
 
 - **Streaming Chat Interface**: Real-time AI responses streamed token-by-token using Vaadin's server push
