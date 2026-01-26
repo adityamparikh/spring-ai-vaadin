@@ -4,6 +4,7 @@ import com.vaadin.flow.component.masterdetaillayout.MasterDetailLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 import java.util.UUID;
 import org.spring.framework.ai.vaadin.service.Assistant;
 import org.spring.framework.ai.vaadin.service.Assistant.ChatOptions;
@@ -22,6 +23,7 @@ import org.spring.framework.ai.vaadin.ui.component.SettingsPanel;
  */
 @Route("")
 @PageTitle("Spring AI Assistant")
+@PermitAll
 public class MainView extends MasterDetailLayout {
 
   private final Chat chat;
