@@ -10,10 +10,22 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.shared.Registration;
 
+/**
+ * Header component for the chat interface.
+ *
+ * <p>Displays the application title and provides action buttons for:
+ * <ul>
+ *   <li>Starting a new chat session</li>
+ *   <li>Opening the settings panel</li>
+ * </ul>
+ */
 public class ChatHeader extends HorizontalLayout {
   private final Button newChatButton;
   private final Button settingsButton;
 
+  /**
+   * Creates a new chat header with title and action buttons.
+   */
   public ChatHeader() {
     addClassName("chat-header");
     setWidthFull();
@@ -38,10 +50,22 @@ public class ChatHeader extends HorizontalLayout {
     addToEnd(newChatButton, settingsButton);
   }
 
+  /**
+   * Adds a listener for the "New Chat" button click event.
+   *
+   * @param listener the listener to be notified when the button is clicked
+   * @return a registration for removing the listener
+   */
   public Registration addNewChatListener(ComponentEventListener<ClickEvent<Button>> listener) {
     return newChatButton.addClickListener(listener);
   }
 
+  /**
+   * Adds a listener for the "Settings" button click event.
+   *
+   * @param listener the listener to be notified when the button is clicked
+   * @return a registration for removing the listener
+   */
   public Registration addToggleSettingsListener(
       ComponentEventListener<ClickEvent<Button>> listener) {
     return settingsButton.addClickListener(listener);

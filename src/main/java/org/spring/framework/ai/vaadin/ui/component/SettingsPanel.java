@@ -20,6 +20,19 @@ import com.vaadin.flow.shared.Registration;
 import org.spring.framework.ai.vaadin.service.RagContextService;
 import org.spring.framework.ai.vaadin.ui.util.CustomMultipartFile;
 
+/**
+ * Settings panel component for configuring chat behavior and RAG data sources.
+ *
+ * <p>This panel provides controls for:
+ * <ul>
+ *   <li>Custom system message to guide AI behavior</li>
+ *   <li>MCP (Model Context Protocol) tool usage toggle</li>
+ *   <li>RAG data source management (file upload and listing)</li>
+ * </ul>
+ *
+ * <p>Uploaded files are processed by the {@link RagContextService} and stored
+ * in the vector store for retrieval during chat interactions.
+ */
 public class SettingsPanel extends VerticalLayout {
 
   private final RagContextService ragContextService;
@@ -29,6 +42,11 @@ public class SettingsPanel extends VerticalLayout {
   private final Button closeButton;
   private Upload upload;
 
+  /**
+   * Creates a new settings panel with the specified RAG context service.
+   *
+   * @param ragContextService the service for managing RAG data sources
+   */
   public SettingsPanel(RagContextService ragContextService) {
     this.ragContextService = ragContextService;
 
@@ -104,10 +122,19 @@ public class SettingsPanel extends VerticalLayout {
         });
   }
 
+  /**
+   * Adds a listener for the close button click event.
+   *
+   * @param listener the listener to be notified when the close button is clicked
+   * @return a registration for removing the listener
+   */
   public Registration addCloseListener(ComponentEventListener<ClickEvent<Button>> listener) {
     return closeButton.addClickListener(listener);
   }
 
+  /**
+   * Updates the displayed list of files currently loaded in the RAG context.
+   */
   public void updateFilesList() {
     var files = ragContextService.getFilesInContext();
 
@@ -124,18 +151,38 @@ public class SettingsPanel extends VerticalLayout {
     }
   }
 
+  /**
+   * Gets the current system message.
+   *
+   * @return the system message text
+   */
   public String getSystemMessage() {
     return systemMessageField.getValue();
   }
 
+  /**
+   * Sets the system message.
+   *
+   * @param message the system message text, or null to clear
+   */
   public void setSystemMessage(String message) {
     systemMessageField.setValue(message != null ? message : "");
   }
 
+  /**
+   * Checks if MCP tool usage is enabled.
+   *
+   * @return true if MCP is enabled, false otherwise
+   */
   public boolean isUseMcp() {
     return useMcpField.getValue();
   }
 
+  /**
+   * Sets whether MCP tool usage is enabled.
+   *
+   * @param useMcp true to enable MCP, false to disable
+   */
   public void setUseMcp(boolean useMcp) {
     useMcpField.setValue(useMcp);
   }

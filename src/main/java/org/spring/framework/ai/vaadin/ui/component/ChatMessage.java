@@ -3,11 +3,25 @@ package org.spring.framework.ai.vaadin.ui.component;
 import com.vaadin.flow.component.messages.MessageListItem;
 import java.util.List;
 
+/**
+ * Represents a chat message in the UI with support for text content and file attachments.
+ *
+ * <p>This class wraps Vaadin's {@link MessageListItem} to provide additional functionality
+ * for handling attachments (images and documents) and streaming text updates. Messages
+ * display a typing indicator while waiting for AI responses.
+ */
 public class ChatMessage {
   private List<ChatAttachment> attachments;
   MessageListItem messageListItem = new MessageListItem();
   private final String TYPING_INDICATOR = "<div class='typing-indicator'></div>";
 
+  /**
+   * Creates a new chat message.
+   *
+   * @param role the sender role ("User" or "Assistant")
+   * @param content the text content of the message, or null for empty messages
+   * @param attachments list of file attachments, or null if none
+   */
   public ChatMessage(String role, String content, List<ChatAttachment> attachments) {
     var contentBuilder = new StringBuilder();
 
@@ -92,5 +106,13 @@ public class ChatMessage {
     return attachments;
   }
 
+  /**
+   * Represents a file attachment within a chat message.
+   *
+   * @param type the MIME type of the attachment
+   * @param fileName the original filename
+   * @param data the raw binary content (may be null for display-only attachments)
+   * @param url the URL or data URI for displaying the attachment
+   */
   public static record ChatAttachment(String type, String fileName, byte[] data, String url) {}
 }

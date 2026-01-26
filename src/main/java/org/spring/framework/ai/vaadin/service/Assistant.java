@@ -23,8 +23,33 @@ import org.springframework.util.MimeType;
 import org.springaicommunity.mcp.security.client.sync.AuthenticationMcpTransportContextProvider;
 import reactor.core.publisher.Flux;
 
+/**
+ * Core AI assistant service that handles chat interactions with language models.
+ *
+ * <p>This service provides:
+ * <ul>
+ *   <li>Streaming chat responses using Spring AI's ChatClient</li>
+ *   <li>Retrieval-Augmented Generation (RAG) with vector store integration</li>
+ *   <li>Chat memory for conversation context</li>
+ *   <li>File attachment processing (images, PDFs, text files)</li>
+ *   <li>Optional MCP (Model Context Protocol) tool integration</li>
+ *   <li>Content safety filtering via SafeGuardAdvisor</li>
+ * </ul>
+ *
+ * <p>The assistant uses a RAG pipeline that rewrites queries for better search results
+ * and augments prompts with relevant context from the vector store.
+ *
+ * @see RagContextService for managing RAG data sources
+ */
 @Service
 public class Assistant {
+
+  /**
+   * Configuration options for chat interactions.
+   *
+   * @param systemMessage custom system prompt to guide AI behavior
+   * @param useMcp whether to enable MCP tool calling capabilities
+   */
   public record ChatOptions(String systemMessage, boolean useMcp) {}
 
   private final ChatOptions defaultOptions = new ChatOptions("", false);
@@ -47,6 +72,14 @@ public class Assistant {
         </attachment>
         """;
 
+  /**
+   * Creates a new Assistant with the specified dependencies.
+   *
+   * @param chatMemory the chat memory store for conversation history
+   * @param builder the ChatClient builder for AI model interactions
+   * @param vectorStore the vector store for RAG document retrieval
+   * @param mcpSyncClients list of MCP clients for tool integrations
+   */
   public Assistant(
       ChatMemory chatMemory,
       ChatClient.Builder builder,
@@ -89,6 +122,19 @@ public class Assistant {
             .build();
   }
 
+  /**
+   * Streams AI responses for a chat message.
+   *
+   * <p>Processes the user message along with any attachments and streams the AI response
+   * token by token. The response includes RAG context from the vector store when relevant
+   * documents are found.
+   *
+   * @param chatId unique identifier for the chat session
+   * @param userMessage the user's message text
+   * @param attachments list of file attachments (images, PDFs, text files)
+   * @param options optional chat configuration (system message, MCP usage)
+   * @return a Flux of response tokens that can be subscribed to for streaming
+   */
   public Flux<String> stream(
       String chatId,
       String userMessage,
@@ -126,6 +172,12 @@ public class Assistant {
             .contextWrite(AuthenticationMcpTransportContextProvider.writeToReactorContext());
   }
 
+  /**
+   * Retrieves the chat history for a given session.
+   *
+   * @param chatId the chat session identifier
+   * @return list of messages from the conversation (user and assistant messages only)
+   */
   public List<Message> getHistory(String chatId) {
     return chatMemory.get(chatId).stream()
         .filter(
@@ -142,6 +194,11 @@ public class Assistant {
         .toList();
   }
 
+  /**
+   * Closes a chat session and clears its memory.
+   *
+   * @param chatId the chat session identifier to close
+   */
   public void closeChat(String chatId) {
     chatMemory.clear(chatId);
   }
@@ -182,8 +239,23 @@ public class Assistant {
     return new ProcessedAttachments(documentBuilder.toString(), mediaList);
   }
 
+  /**
+   * Represents a file attachment in a chat message.
+   *
+   * @param type the MIME type of the attachment
+   * @param key unique identifier for the attachment
+   * @param fileName the original filename
+   * @param url URL or data URI for displaying the attachment
+   */
   public static record Attachment(String type, String key, String fileName, String url) {}
 
+  /**
+   * Represents a chat message with its role, content, and attachments.
+   *
+   * @param role the message role ("user" or "assistant")
+   * @param content the text content of the message
+   * @param attachments optional list of file attachments
+   */
   public static record Message(
       String role, String content, @Nullable List<Attachment> attachments) {}
 }
