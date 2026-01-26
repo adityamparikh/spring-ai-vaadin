@@ -10,8 +10,6 @@ import org.springaicommunity.mcp.security.client.sync.oauth2.http.client.OAuth2A
 import org.springframework.ai.mcp.customizer.McpSyncClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
