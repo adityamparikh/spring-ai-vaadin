@@ -75,6 +75,11 @@
 			<artifactId>mcp-client-security</artifactId>
 			<version>0.1.0</version>
 		</dependency>
+		<!-- Required for Reactor context propagation (SecurityContext to boundedElastic threads) -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>context-propagation</artifactId>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

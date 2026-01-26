@@ -3,6 +3,7 @@ package org.spring.framework.ai.vaadin;
 import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
 import io.modelcontextprotocol.client.transport.customizer.McpSyncHttpClientRequestCustomizer;
 import jakarta.annotation.PostConstruct;
+import reactor.core.publisher.Hooks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.mcp.security.client.sync.AuthenticationMcpTransportContextProvider;
@@ -10,9 +11,13 @@ import org.springaicommunity.mcp.security.client.sync.oauth2.http.client.OAuth2A
 import org.springframework.ai.mcp.customizer.McpSyncClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -23,10 +28,14 @@ public class McpSecurityConfig {
 
     @PostConstruct
     public void init() {
-        log.info(">>> McpSecurityConfig initialized - OAuth2 security should be active");
+        // Enable automatic context propagation for Reactor threads
+        // This propagates SecurityContext to boundedElastic threads
+        Hooks.enableAutomaticContextPropagation();
+        log.info(">>> McpSecurityConfig initialized - OAuth2 security and Reactor context propagation enabled");
     }
 
     @Bean
+    @Primary
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info(">>> Creating security filter chain with OAuth2 login");
 
@@ -84,6 +93,19 @@ public class McpSecurityConfig {
     McpSyncClientCustomizer mcpSyncClientCustomizer() {
         return (name, syncSpec) -> syncSpec
             .transportContextProvider(new AuthenticationMcpTransportContextProvider());
+    }
+
+    /**
+     * OAuth2AuthorizedClientManager that works outside of HTTP request context.
+     * Required because MCP tool calls execute on Reactor threads after the original
+     * servlet request has been recycled.
+     */
+    @Bean
+    OAuth2AuthorizedClientManager authorizedClientManager(
+            ClientRegistrationRepository clientRegistrationRepository,
+            OAuth2AuthorizedClientService authorizedClientService) {
+        return new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+            clientRegistrationRepository, authorizedClientService);
     }
 
     @Bean

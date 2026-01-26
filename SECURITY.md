@@ -98,9 +98,27 @@ This is the core security configuration class that:
 
 2. **Configures OAuth2 Login** - Uses Keycloak as the identity provider with `VaadinSavedRequestAwareAuthenticationSuccessHandler` to properly handle Vaadin navigation after login.
 
-3. **Configures MCP Client Security** - Two beans work together to propagate OAuth2 tokens to MCP requests:
+3. **Enables Reactor Context Propagation** - Ensures `SecurityContext` is propagated to reactive threads (see below).
+
+4. **Configures MCP Client Security** - Two beans work together to propagate OAuth2 tokens to MCP requests:
    - `McpSyncClientCustomizer` - Adds authentication context to MCP transport
-   - `McpSyncHttpClientRequestCustomizer` - Adds OAuth2 Authorization header to MCP HTTP requests
+   - `McpSyncHttpClientRequestCustomizer` - Captures and caches OAuth2 access token, adds Authorization header to MCP HTTP requests
+
+### Reactor Context Propagation
+
+**The Problem:** Spring AI's chat client uses reactive streams internally, which execute on Reactor's `boundedElastic` threads. The `SecurityContext` stored in ThreadLocal is not automatically available on these reactive threads, causing MCP tool calls to fail with "Access Denied" even when the user is authenticated.
+
+**The Solution:** Use `contextWrite()` to propagate the `SecurityContext` to the Reactor context when streaming:
+
+```java
+// In your service that calls ChatClient.stream()
+return chatClient.prompt()
+    // ... configure prompt ...
+    .stream().content()
+    .contextWrite(AuthenticationMcpTransportContextProvider.writeToReactorContext());
+```
+
+This captures the `SecurityContext` at the start of the stream (on the servlet thread where it's available) and writes it to the Reactor context, making it available downstream when MCP tool calls execute.
 
 ### Key Beans
 
@@ -111,6 +129,19 @@ McpSyncClientCustomizer mcpSyncClientCustomizer() {
         .transportContextProvider(new AuthenticationMcpTransportContextProvider());
 }
 
+/**
+ * OAuth2AuthorizedClientManager that works outside of HTTP request context.
+ * Required because MCP tool calls execute on Reactor threads after the original
+ * servlet request has been recycled by Tomcat.
+ */
+@Bean
+OAuth2AuthorizedClientManager authorizedClientManager(
+        ClientRegistrationRepository clientRegistrationRepository,
+        OAuth2AuthorizedClientService authorizedClientService) {
+    return new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+        clientRegistrationRepository, authorizedClientService);
+}
+
 @Bean
 McpSyncHttpClientRequestCustomizer mcpAuthorizationCodeCustomizer(
         OAuth2AuthorizedClientManager authorizedClientManager) {
@@ -118,6 +149,10 @@ McpSyncHttpClientRequestCustomizer mcpAuthorizationCodeCustomizer(
         authorizedClientManager, "keycloak");
 }
 ```
+
+**Important:** The `AuthorizedClientServiceOAuth2AuthorizedClientManager` is required instead of the default `DefaultOAuth2AuthorizedClientManager`. The default manager tries to access `HttpServletRequest` to get request parameters, but by the time MCP tool calls execute on Reactor threads, the original servlet request has been recycled by Tomcat, causing `IllegalStateException: The request object has been recycled`.
+
+The `AuthenticationMcpTransportContextProvider` reads the authentication from the Reactor context (written via `contextWrite()`), and the `OAuth2AuthorizationCodeSyncHttpRequestCustomizer` uses the service-based manager to add the Bearer token to MCP requests.
 
 ## Dependencies
 
@@ -132,6 +167,11 @@ The following dependencies are required in `pom.xml`:
     <groupId>org.springaicommunity</groupId>
     <artifactId>mcp-client-security</artifactId>
     <version>0.1.0</version>
+</dependency>
+<!-- Required for Reactor context propagation (SecurityContext to boundedElastic threads) -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>context-propagation</artifactId>
 </dependency>
 ```
 
@@ -186,6 +226,44 @@ Ensure MCP client properties are correctly configured:
 - `spring.ai.mcp.client.enabled=true`
 - Check the URL and endpoint are correct
 - Verify the MCP server is running and accessible
+
+### MCP Tool Calls Return "Access Denied"
+
+If MCP tool calls fail with "Access Denied" even though the user is authenticated:
+
+1. **Check thread names in logs** - If tool calls run on `boundedElastic-*` threads (Reactor threads), the SecurityContext may not be propagating.
+
+2. **Verify `contextWrite()` is used** - Ensure your ChatClient stream includes:
+   ```java
+   .contextWrite(AuthenticationMcpTransportContextProvider.writeToReactorContext())
+   ```
+
+3. **Enable debug logging** to trace authentication:
+   ```properties
+   logging.level.org.springframework.security=DEBUG
+   ```
+
+4. **Check MCP server logs** - Look for `Set SecurityContextHolder to anonymous` which indicates the token isn't being received.
+
+### "The request object has been recycled" Error
+
+If you see `IllegalStateException: The request object has been recycled and is no longer associated with this facade`:
+
+**Cause:** The default `DefaultOAuth2AuthorizedClientManager` tries to access the HTTP servlet request, but MCP tool calls execute on Reactor threads after the original request has been recycled.
+
+**Solution:** Define a custom `OAuth2AuthorizedClientManager` bean using `AuthorizedClientServiceOAuth2AuthorizedClientManager`:
+
+```java
+@Bean
+OAuth2AuthorizedClientManager authorizedClientManager(
+        ClientRegistrationRepository clientRegistrationRepository,
+        OAuth2AuthorizedClientService authorizedClientService) {
+    return new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+        clientRegistrationRepository, authorizedClientService);
+}
+```
+
+This manager stores authorized clients in `OAuth2AuthorizedClientService` and doesn't require an active HTTP request.
 
 ## Debug Logging
 

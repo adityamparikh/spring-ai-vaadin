@@ -20,6 +20,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeType;
+import org.springaicommunity.mcp.security.client.sync.AuthenticationMcpTransportContextProvider;
 import reactor.core.publisher.Flux;
 
 @Service
@@ -119,7 +120,10 @@ public class Assistant {
       prompt.toolCallbacks(new SyncMcpToolCallbackProvider(mcpSyncClients));
     }
 
-    return prompt.stream().content();
+    return prompt
+            .stream()
+            .content()
+            .contextWrite(AuthenticationMcpTransportContextProvider.writeToReactorContext());
   }
 
   public List<Message> getHistory(String chatId) {
