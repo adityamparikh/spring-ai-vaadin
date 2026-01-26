@@ -47,6 +47,8 @@ src/main/java/org/spring/framework/ai/vaadin/
 - Java 21 or higher
 - OpenAI API key (or other supported LLM provider)
 - (Optional) Keycloak server for OAuth2 authentication with MCP
+  - `OAUTH2_ISSUER_URI` - Keycloak realm issuer URI
+  - `KEYCLOAK_CLIENT_SECRET` - OAuth2 client secret
 
 ## Getting Started
 
@@ -120,7 +122,14 @@ spring.ai.mcp.client.streamable-http.connections.myserver.endpoint=/mcp
 
 ### OAuth2/Keycloak Configuration
 
-For secure MCP integration with user authentication, see [SECURITY.md](SECURITY.md) for detailed setup instructions.
+For secure MCP integration with user authentication:
+
+```bash
+export OAUTH2_ISSUER_URI=http://localhost:8180/realms/your-realm
+export KEYCLOAK_CLIENT_SECRET=your-client-secret
+```
+
+See [SECURITY.md](SECURITY.md) for detailed setup instructions.
 
 ## Technologies
 

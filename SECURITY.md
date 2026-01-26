@@ -43,11 +43,14 @@ Create a client with the following settings:
 | Valid Redirect URIs | `http://localhost:8081/*` |
 | Web Origins | `http://localhost:8081` |
 
-### 3. Get the Client Secret
+### 3. Get the Client Secret and Issuer URI
 
 1. Go to your client's **Credentials** tab
 2. Copy the **Client secret** value
-3. Set it as an environment variable: `KEYCLOAK_CLIENT_SECRET`
+3. Note your realm's issuer URI (e.g., `http://localhost:8180/realms/solr-mcp`)
+4. Set them as environment variables:
+   - `KEYCLOAK_CLIENT_SECRET` - The client secret from step 2
+   - `OAUTH2_ISSUER_URI` - The issuer URI from step 3
 
 ### 4. Create Users
 
@@ -68,7 +71,7 @@ spring.ai.mcp.client.streamable-http.connections.solr.url=http://localhost:8080
 spring.ai.mcp.client.streamable-http.connections.solr.endpoint=/mcp
 
 # Keycloak OAuth2 Provider
-spring.security.oauth2.client.provider.keycloak.issuer-uri=http://localhost:8180/realms/solr-mcp
+spring.security.oauth2.client.provider.keycloak.issuer-uri=${OAUTH2_ISSUER_URI}
 
 # Keycloak Client Registration (Authorization Code Flow)
 spring.security.oauth2.client.registration.keycloak.client-id=solr-mcp-client
@@ -80,13 +83,14 @@ spring.security.oauth2.client.registration.keycloak.redirect-uri={baseUrl}/login
 
 ### Environment Variables
 
-Set the following environment variable before running the application:
+Set the following environment variables before running the application:
 
 ```bash
+export OAUTH2_ISSUER_URI=http://localhost:8180/realms/solr-mcp
 export KEYCLOAK_CLIENT_SECRET=your-client-secret-here
 ```
 
-Or configure it in your IDE's run configuration.
+Or configure them in your IDE's run configuration.
 
 ## Security Components
 
@@ -218,7 +222,7 @@ This typically indicates Vaadin's WebSocket connections are being blocked. Ensur
 
 1. Verify **Client authentication** is enabled in Keycloak client settings
 2. Check the client secret matches the `KEYCLOAK_CLIENT_SECRET` environment variable
-3. Verify the issuer URI matches your Keycloak realm URL
+3. Verify the `OAUTH2_ISSUER_URI` environment variable matches your Keycloak realm URL (e.g., `http://localhost:8180/realms/solr-mcp`)
 
 ### MCP Server Not Discovered
 
