@@ -73,7 +73,7 @@
 		<dependency>
 			<groupId>org.springaicommunity</groupId>
 			<artifactId>mcp-client-security</artifactId>
-			<version>0.1.0</version>
+			<version>0.1.9</version>
 		</dependency>
 		<!-- Required for Reactor context propagation (SecurityContext to boundedElastic threads) -->
 		<dependency>
