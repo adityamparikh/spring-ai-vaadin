@@ -61,7 +61,7 @@ Spring AI's chat client uses reactive streams on `boundedElastic` threads. For O
 ## Important Patterns
 
 - Vaadin Push (`@Push`) enables streaming token-by-token responses via `ui.access()`
-- ChatClient advisors chain: SafeGuard → Memory → RAG pipeline
+- ChatClient advisors chain: SafeGuard → Session (turn + memory, via `SessionAdvisors`) → RAG pipeline. Every request must carry `SessionAdvisors.session(chatId)`; the session advisors throw without one
 - File attachments: images become Media objects, text/PDF parsed via Tika into context
 
 ## See Also

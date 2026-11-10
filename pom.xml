@@ -28,8 +28,11 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<spring-ai.version>2.0.0-M2</spring-ai.version>
+		<spring-ai.version>2.1.0-RC2</spring-ai.version>
 		<vaadin.version>25.0.3</vaadin.version>
+		<!-- The MCP SDK Spring AI 2.1 is built against. Its BOM does not manage the SDK, so without this
+		     mcp-client-security's older SDK wins Maven's nearest-first resolution. -->
+		<mcp-sdk.version>2.2.0-M2</mcp-sdk.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -58,6 +61,14 @@
 			<artifactId>spring-ai-rag</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-session-advisor</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-autoconfigure-model-session</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
@@ -73,7 +84,7 @@
 		<dependency>
 			<groupId>org.springaicommunity</groupId>
 			<artifactId>mcp-client-security</artifactId>
-			<version>0.1.9</version>
+			<version>0.1.14</version>
 		</dependency>
 		<!-- Required for Reactor context propagation (SecurityContext to boundedElastic threads) -->
 		<dependency>
@@ -87,6 +98,13 @@
 				<groupId>com.vaadin</groupId>
 				<artifactId>vaadin-bom</artifactId>
 				<version>${vaadin.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.modelcontextprotocol.sdk</groupId>
+				<artifactId>mcp-bom</artifactId>
+				<version>${mcp-sdk.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
