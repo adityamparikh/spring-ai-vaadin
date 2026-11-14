@@ -283,7 +283,7 @@ logging.level.io.modelcontextprotocol=DEBUG
 
 | Component | Version |
 |-----------|---------|
-| Spring Boot | 4.0.2 |
+| Spring Boot | 4.2.0-RC2 |
 | Spring AI | 2.0.0-M2 |
 | Vaadin | 25.0.3 |
 | Java | 21 |

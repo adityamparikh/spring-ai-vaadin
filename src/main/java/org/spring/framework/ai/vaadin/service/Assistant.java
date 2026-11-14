@@ -4,9 +4,7 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SafeGuardAdvisor;
-import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.content.Media;
 import org.springframework.ai.document.Document;
@@ -16,6 +14,9 @@ import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugment
 import org.springframework.ai.rag.preretrieval.query.transformation.RewriteQueryTransformer;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
+import org.springframework.ai.session.EventFilter;
+import org.springframework.ai.session.SessionService;
+import org.springframework.ai.session.advisor.SessionAdvisors;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ import reactor.core.publisher.Flux;
  * <ul>
  *   <li>Streaming chat responses using Spring AI's ChatClient</li>
  *   <li>Retrieval-Augmented Generation (RAG) with vector store integration</li>
- *   <li>Chat memory for conversation context</li>
+ *   <li>Session memory for conversation context</li>
  *   <li>File attachment processing (images, PDFs, text files)</li>
  *   <li>Optional MCP (Model Context Protocol) tool integration</li>
  *   <li>Content safety filtering via SafeGuardAdvisor</li>
@@ -55,8 +56,15 @@ public class Assistant {
   private final ChatOptions defaultOptions = new ChatOptions("", false);
 
   private final ChatClient chatClient;
-  private final ChatMemory chatMemory;
+  private final SessionService sessionService;
   private final List<McpSyncClient> mcpSyncClients;
+
+  /**
+   * How many of the newest session events are replayed into each prompt, matching the
+   * 20-message window of the chat memory this replaces. The window is extended to the
+   * start of its turn, so a tool call is never replayed without its result.
+   */
+  private static final int HISTORY_WINDOW = 20;
 
   private static final String DEFAULT_SYSTEM =
       """
@@ -75,50 +83,54 @@ public class Assistant {
   /**
    * Creates a new Assistant with the specified dependencies.
    *
-   * @param chatMemory the chat memory store for conversation history
+   * @param sessionService the session store for conversation history
    * @param builder the ChatClient builder for AI model interactions
    * @param vectorStore the vector store for RAG document retrieval
    * @param mcpSyncClients list of MCP clients for tool integrations
    */
   public Assistant(
-      ChatMemory chatMemory,
+      SessionService sessionService,
       ChatClient.Builder builder,
       VectorStore vectorStore,
       List<McpSyncClient> mcpSyncClients) {
-    this.chatMemory = chatMemory;
+    this.sessionService = sessionService;
     this.mcpSyncClients = mcpSyncClients;
+
+    // Define RAG pipeline
+    // See
+    // https://docs.spring.io/spring-ai/reference/api/retrieval-augmented-generation.html#modules
+    // Built before any advisor is added to the builder, so the query rewriter's client
+    // carries no session advisors (it sends no session ID).
+    var ragAdvisor =
+        RetrievalAugmentationAdvisor.builder()
+            .queryTransformers(
+                // Rewrite the query for better search results
+                RewriteQueryTransformer.builder()
+                    .chatClientBuilder(builder.build().mutate())
+                    .build())
+            // Allow empty context (so you can try the assistant without context and
+            // compare)
+            .queryAugmenter(ContextualQueryAugmenter.builder().allowEmptyContext(true).build())
+
+            // Use the vector store to retrieve documents
+            .documentRetriever(
+                VectorStoreDocumentRetriever.builder()
+                    .similarityThreshold(0.50)
+                    .vectorStore(vectorStore)
+                    .build())
+            .build();
 
     chatClient =
         builder
+            // Absolutely don't let people ask about PHP 😆
+            .defaultAdvisors(new SafeGuardAdvisor(List.of("PHP")))
+
+            // Remember the conversation: the session turn and memory advisors
             .defaultAdvisors(
-
-                // Absolutely don't let people ask about PHP 😆
-                new SafeGuardAdvisor(List.of("PHP")),
-
-                // Remember the conversation
-                MessageChatMemoryAdvisor.builder(chatMemory).build(),
-
-                // Define RAG pipeline
-                // See
-                // https://docs.spring.io/spring-ai/reference/api/retrieval-augmented-generation.html#modules
-                RetrievalAugmentationAdvisor.builder()
-                    .queryTransformers(
-                        // Rewrite the query for better search results
-                        RewriteQueryTransformer.builder()
-                            .chatClientBuilder(builder.build().mutate())
-                            .build())
-                    // Allow empty context (so you can try the assistant without context and
-                    // compare)
-                    .queryAugmenter(
-                        ContextualQueryAugmenter.builder().allowEmptyContext(true).build())
-
-                    // Use the vector store to retrieve documents
-                    .documentRetriever(
-                        VectorStoreDocumentRetriever.builder()
-                            .similarityThreshold(0.50)
-                            .vectorStore(vectorStore)
-                            .build())
+                SessionAdvisors.builder(sessionService)
+                    .memory(memory -> memory.eventFilter(EventFilter.lastN(HISTORY_WINDOW)))
                     .build())
+            .defaultAdvisors(ragAdvisor)
             .build();
   }
 
@@ -157,10 +169,7 @@ public class Assistant {
                   u.text(userMessage + processedAttachments.documentContent());
                   u.media(processedAttachments.mediaList().toArray(Media[]::new));
                 })
-            .advisors(
-                a -> {
-                  a.param(ChatMemory.CONVERSATION_ID, chatId);
-                });
+            .advisors(SessionAdvisors.session(chatId));
 
     if (options.useMcp) {
       prompt.toolCallbacks(new SyncMcpToolCallbackProvider(mcpSyncClients));
@@ -179,7 +188,7 @@ public class Assistant {
    * @return list of messages from the conversation (user and assistant messages only)
    */
   public List<Message> getHistory(String chatId) {
-    return chatMemory.get(chatId).stream()
+    return sessionService.getActiveMessages(chatId).stream()
         .filter(
             message ->
                 message.getMessageType().equals(MessageType.USER)
@@ -195,12 +204,12 @@ public class Assistant {
   }
 
   /**
-   * Closes a chat session and clears its memory.
+   * Closes a chat session and deletes its stored history.
    *
    * @param chatId the chat session identifier to close
    */
   public void closeChat(String chatId) {
-    chatMemory.clear(chatId);
+    sessionService.delete(chatId);
   }
 
   private record ProcessedAttachments(String documentContent, List<Media> mediaList) {}

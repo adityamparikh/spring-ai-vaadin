@@ -1,6 +1,7 @@
 package org.spring.framework.ai.vaadin;
 
 import com.vaadin.flow.spring.security.VaadinSavedRequestAwareAuthenticationSuccessHandler;
+import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.transport.customizer.McpSyncHttpClientRequestCustomizer;
 import jakarta.annotation.PostConstruct;
 import reactor.core.publisher.Hooks;
@@ -8,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springaicommunity.mcp.security.client.sync.AuthenticationMcpTransportContextProvider;
 import org.springaicommunity.mcp.security.client.sync.oauth2.http.client.OAuth2AuthorizationCodeSyncHttpRequestCustomizer;
-import org.springframework.ai.mcp.customizer.McpSyncClientCustomizer;
+import org.springframework.ai.mcp.customizer.McpClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -137,7 +138,7 @@ public class McpSecurityConfig {
      * @return the MCP client customizer
      */
     @Bean
-    McpSyncClientCustomizer mcpSyncClientCustomizer() {
+    McpClientCustomizer<McpClient.SyncSpec> mcpSyncClientCustomizer() {
         return (name, syncSpec) -> syncSpec
             .transportContextProvider(new AuthenticationMcpTransportContextProvider());
     }
@@ -162,12 +163,14 @@ public class McpSecurityConfig {
      * OAuth2 bearer token from the current user's Keycloak session.
      *
      * @param authorizedClientManager the OAuth2 client manager for token retrieval
+     * @param clientRegistrationRepository the client registrations, used to look up "keycloak"
      * @return the HTTP request customizer
      */
     @Bean
     McpSyncHttpClientRequestCustomizer mcpAuthorizationCodeCustomizer(
-            OAuth2AuthorizedClientManager authorizedClientManager) {
+            OAuth2AuthorizedClientManager authorizedClientManager,
+            ClientRegistrationRepository clientRegistrationRepository) {
         return new OAuth2AuthorizationCodeSyncHttpRequestCustomizer(
-            authorizedClientManager, "keycloak");
+            authorizedClientManager, clientRegistrationRepository, "keycloak");
     }
 }

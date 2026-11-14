@@ -15,7 +15,7 @@ It demonstrates how to build AI-powered chat interfaces in a Spring Boot applica
 - **RAG Support**: Upload documents to a vector store for context-aware AI responses
 - **MCP Integration**: Optional Model Context Protocol support for tool-based capabilities
 - **OAuth2/Keycloak Security**: Secure authentication with token propagation to MCP servers
-- **Chat Memory**: Conversation history maintained across messages
+- **Session Memory**: Conversation history kept in a Spring AI session across messages
 - **Content Safety**: Built-in SafeGuard advisor for content filtering
 
 ## Project Structure
@@ -135,11 +135,11 @@ See [SECURITY.md](SECURITY.md) for detailed setup instructions.
 
 | Component | Version |
 |-----------|---------|
-| Spring Boot | 4.0.2 |
-| Spring AI | 2.0.0-M2 |
+| Spring Boot | 4.2.0-RC2 |
+| Spring AI | 2.1.0-RC2 |
 | Vaadin | 25.0.3 |
 | Java | 21 |
-| MCP Client Security | 0.1.0 |
+| MCP Client Security | 0.1.14 |
 
 ### Key Dependencies
 

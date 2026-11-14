@@ -1,6 +1,8 @@
 package org.spring.framework.ai.vaadin;
 
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.session.InMemorySessionRepository;
+import org.springframework.ai.session.SessionRepository;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Bean;
@@ -27,5 +29,19 @@ public class AiConfig {
   @Bean
   public VectorStore vectorStore(EmbeddingModel embeddingModel) {
     return SimpleVectorStore.builder(embeddingModel).build();
+  }
+
+  /**
+   * Stores chat sessions in memory.
+   *
+   * <p>Spring AI's session auto-configuration builds the {@link
+   * org.springframework.ai.session.SessionService} on this repository. Sessions do not
+   * survive a restart, matching the in-memory chat memory this replaces.
+   *
+   * @return an in-memory {@link SessionRepository}
+   */
+  @Bean
+  public SessionRepository sessionRepository() {
+    return InMemorySessionRepository.builder().build();
   }
 }
