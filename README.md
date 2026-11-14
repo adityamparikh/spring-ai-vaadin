@@ -135,7 +135,7 @@ See [SECURITY.md](SECURITY.md) for detailed setup instructions.
 
 | Component | Version |
 |-----------|---------|
-| Spring Boot | 4.0.2 |
+| Spring Boot | 4.2.0-RC2 |
 | Spring AI | 2.1.0-RC2 |
 | Vaadin | 25.0.3 |
 | Java | 21 |
