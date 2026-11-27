@@ -162,12 +162,14 @@ public class McpSecurityConfig {
      * OAuth2 bearer token from the current user's Keycloak session.
      *
      * @param authorizedClientManager the OAuth2 client manager for token retrieval
+     * @param clientRegistrationRepository the client registrations, used to look up "keycloak"
      * @return the HTTP request customizer
      */
     @Bean
     McpSyncHttpClientRequestCustomizer mcpAuthorizationCodeCustomizer(
-            OAuth2AuthorizedClientManager authorizedClientManager) {
+            OAuth2AuthorizedClientManager authorizedClientManager,
+            ClientRegistrationRepository clientRegistrationRepository) {
         return new OAuth2AuthorizationCodeSyncHttpRequestCustomizer(
-            authorizedClientManager, "keycloak");
+            authorizedClientManager, clientRegistrationRepository, "keycloak");
     }
 }
