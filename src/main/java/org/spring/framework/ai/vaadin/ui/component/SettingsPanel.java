@@ -11,12 +11,16 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.shared.Registration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spring.framework.ai.vaadin.service.RagContextService;
 import org.spring.framework.ai.vaadin.ui.util.CustomMultipartFile;
 
@@ -34,6 +38,8 @@ import org.spring.framework.ai.vaadin.ui.util.CustomMultipartFile;
  * in the vector store for retrieval during chat interactions.
  */
 public class SettingsPanel extends VerticalLayout {
+
+  private static final Logger log = LoggerFactory.getLogger(SettingsPanel.class);
 
   private final RagContextService ragContextService;
   private final TextArea systemMessageField;
@@ -117,7 +123,12 @@ public class SettingsPanel extends VerticalLayout {
             getUI().get().access(() -> updateFilesList());
 
           } catch (Exception e) {
-            e.printStackTrace();
+            // The upload itself succeeded, so tell the user indexing failed instead of
+            // leaving the file silently missing from the RAG context. Vaadin runs this
+            // callback inside UI.access, so showing a notification here is safe.
+            log.error("Failed to add {} to the RAG context", meta.fileName(), e);
+            Notification.show("Could not add " + meta.fileName() + " to the RAG context")
+                .addThemeVariants(NotificationVariant.LUMO_ERROR);
           }
         });
   }
