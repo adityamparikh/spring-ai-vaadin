@@ -6,9 +6,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Utility class for image operations. */
-public class ImageUtils {
+public final class ImageUtils {
+
+  private static final Logger log = LoggerFactory.getLogger(ImageUtils.class);
+
+  private ImageUtils() {}
 
   /**
    * Creates a thumbnail from the provided image data.
@@ -24,6 +30,11 @@ public class ImageUtils {
     try {
       var bis = new ByteArrayInputStream(imageData);
       var originalImage = ImageIO.read(bis);
+      if (originalImage == null) {
+        // No ImageIO reader for this format (e.g. SVG, WebP)
+        log.debug("Cannot decode {} image, using original data as thumbnail", contentType);
+        return imageData;
+      }
 
       // Create thumbnail image
       var thumbnailImage = new BufferedImage(thumbWidth, thumbHeight, BufferedImage.TYPE_INT_RGB);
@@ -37,11 +48,15 @@ public class ImageUtils {
       var bos = new ByteArrayOutputStream();
       // Extract format from contentType (e.g., "jpeg" from "image/jpeg")
       var format = contentType.substring(6);
-      ImageIO.write(thumbnailImage, format, bos);
+      if (!ImageIO.write(thumbnailImage, format, bos)) {
+        // No ImageIO writer for this format
+        log.debug("Cannot encode {} image, using original data as thumbnail", contentType);
+        return imageData;
+      }
       return bos.toByteArray();
     } catch (IOException e) {
       // Fallback to original image if thumbnail creation fails
-      System.err.println("Failed to create thumbnail: " + e.getMessage());
+      log.warn("Failed to create thumbnail for {} image", contentType, e);
       return imageData;
     }
   }
