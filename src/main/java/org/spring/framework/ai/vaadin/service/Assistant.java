@@ -3,6 +3,7 @@ package org.spring.framework.ai.vaadin.service;
 import io.modelcontextprotocol.client.McpSyncClient;
 import jakarta.annotation.Nullable;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SafeGuardAdvisor;
@@ -188,7 +189,7 @@ public class Assistant {
         .map(
             message ->
                 new Message(
-                    message.getMessageType().toString().toLowerCase(),
+                    message.getMessageType().toString().toLowerCase(Locale.ROOT),
                     message.getText(),
                     List.of()))
         .toList();
