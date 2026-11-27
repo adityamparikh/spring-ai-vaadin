@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
  * <p>Note: The {@link #transferTo(File)} method is not supported as this implementation
  * is designed for in-memory processing only.
  */
-public class CustomMultipartFile implements MultipartFile {
+public final class CustomMultipartFile implements MultipartFile {
   private final String name;
   private final String contentType;
   private final byte[] content;
