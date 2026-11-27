@@ -11,9 +11,10 @@ import java.util.List;
  * display a typing indicator while waiting for AI responses.
  */
 public class ChatMessage {
-  private List<ChatAttachment> attachments;
-  MessageListItem messageListItem = new MessageListItem();
-  private final String TYPING_INDICATOR = "<div class='typing-indicator'></div>";
+  private static final String TYPING_INDICATOR = "<div class='typing-indicator'></div>";
+
+  private final List<ChatAttachment> attachments;
+  final MessageListItem messageListItem = new MessageListItem();
 
   /**
    * Creates a new chat message.
@@ -42,7 +43,6 @@ public class ChatMessage {
         } else {
           attachmentsBuilder.append("<div class='attachment-icon'>📄</div>");
         }
-        ;
         attachmentsBuilder.append(
             "<span class='attachment-name'>" + attachment.fileName + "</span>");
         attachmentsBuilder.append("</div>");
@@ -64,7 +64,8 @@ public class ChatMessage {
     messageListItem.setText(contentBuilder.toString());
     messageListItem.setUserColorIndex(role.equals("User") ? 0 : 1);
     messageListItem.setUserName(role);
-    this.attachments = attachments;
+    // Snapshot: callers such as Chat reuse and clear the list they pass in
+    this.attachments = attachments == null ? List.of() : List.copyOf(attachments);
   }
 
   /**
@@ -100,7 +101,7 @@ public class ChatMessage {
   /**
    * Gets the attachments associated with this message.
    *
-   * @return The list of attachments, or null if none
+   * @return an unmodifiable list of attachments, empty if none
    */
   public List<ChatAttachment> getAttachments() {
     return attachments;

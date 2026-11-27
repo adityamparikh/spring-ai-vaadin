@@ -1,8 +1,9 @@
 package org.spring.framework.ai.vaadin.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -15,13 +16,14 @@ import org.springframework.web.multipart.MultipartFile;
  * This service allows the addition of file data to a context that can be utilized for
  * document retrieval and text processing operations.
  *
- * Files are managed in an in-memory list for simplicity.
+ * <p>Files are managed in an in-memory list for simplicity. The service is a singleton shared by
+ * every UI session, so the list is thread-safe.
  */
 @Service
 public class RagContextService {
 
   private final VectorStore vectorStore;
-  private final List<String> filesInContext = new ArrayList<>();
+  private final List<String> filesInContext = new CopyOnWriteArrayList<>();
 
   /**
    * Creates a new RAG context service with the specified vector store.
@@ -52,9 +54,9 @@ public class RagContextService {
   /**
    * Returns the list of filenames currently loaded in the RAG context.
    *
-   * @return list of filenames that have been added to the context
+   * @return an unmodifiable view of the filenames that have been added to the context
    */
   public List<String> getFilesInContext() {
-    return filesInContext;
+    return Collections.unmodifiableList(filesInContext);
   }
 }
