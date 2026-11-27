@@ -87,7 +87,11 @@ public class MainView extends MasterDetailLayout {
               chat.addClassName("streaming");
               assistantMessage.appendText(token);
             }),
-            error -> ui.access(() -> assistantMessage.appendText("Error: " + error.getMessage())),
+            error -> ui.access(() -> {
+              assistantMessage.appendText("Error: " + error.getMessage());
+              // An error terminates the stream without calling onComplete
+              chat.removeClassName("streaming");
+            }),
             () -> ui.access(() -> chat.removeClassName("streaming")));
   }
 
